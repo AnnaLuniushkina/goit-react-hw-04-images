@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { API } from '../serviсes/api';
@@ -10,53 +10,39 @@ import {Modal} from './Modal/Modal';
 import { Circles } from 'react-loader-spinner';
 
 
-class App extends Component {
-  state = {
-    searchQuery: '',
-    hits: [],
-    page: 1,
-    error: null,
-    total: 0,
-    status: 'idle',
-    showModal: false,
-    imageId: null,
-  };
+export default function App() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [hits, setHits] = useState([]);
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState(null);
+  const [total, setTotal] = useState(0);
+  const [status, setStatus] = useState('idle');
+  const [showModal, setShowModal] = useState(false);
+  const [imageId, setImageId] = useState(null);
 
-  componentDidUpdate(_, prevState) {
-    if (prevState.searchQuery !== this.state.searchQuery) {
-      this.setState({ status: 'pending', hits: [], page: 1 }, this.getHits);
-      console.log('Fetch data');
-    }
-    if (prevState.page !== this.state.page && this.state.page !== 1) {
-      this.setState({ status: 'pending' }, this.getHits);
-    }
-  };
-
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal
-    }));
-  };
-
-  handleFormSubmit = searchQuery => {
-    if (this.state.searchQuery !== searchQuery) {
-      this.setState({ searchQuery: searchQuery });
-    }
+  useEffect(() => {
+  if (!searchQuery) {
     return;
-  };
+    };
+    
+    const getHits = () => {
+      setStatus('pending');
+      API(searchQuery, page)
+        .then(dataResponse)
+        .catch(error => {
+        setError(error);
+        setStatus('rejected');
+      });
+    };
+    getHits();
+  }, [page, searchQuery]);
 
-  getHits = () => {
-    API(this.state.searchQuery, this.state.page).then(this.dataResponse).catch(error => this.setState({ error, status: 'rejected' }));
-  };
-
-  dataResponse = response => {
+  const dataResponse = response => {
     const { hits: dataArray, totalHits } = response.data;
 
     if (!dataArray.length) {
-      this.setState({
-        status: 'rejected',
-        error: new Error('Спробуйте змінити запит'),
-      });
+      setStatus('rejected');
+      setError(new Error('Спробуйте змінити запит'));
       return;
     }
 
@@ -67,57 +53,58 @@ class App extends Component {
         webformatURL,
         tags,
       } = hits;
-      return { id, largeImageURL, webformatURL, tags }
+      return { id, largeImageURL, webformatURL, tags };
     });
 
-    return this.setState(({ hits }) => {
-      return {
-        hits: [...hits, ...newHits],
-        total: totalHits,
-        status: 'resolved',
-      };
-    });
+    setHits(hits => [...hits, ...newHits]);
+    setTotal(totalHits);
+    setStatus('resolved');
   };
 
-  loadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-  }
+  const handleFormSubmit = newSearchQuery => {
+    if (searchQuery !== newSearchQuery) {
+      setSearchQuery(newSearchQuery);
+      setPage(1);
+      setHits([]);
+    }
+    return;
+  };
 
-  clickImage = id => {
-    this.setState({ imageId: id });
-    this.toggleModal();
-  }
+  const toggleModal = () => {
+    setShowModal(showModal => !showModal);
+  };
 
-  getLargeImage = () => {
-    return this.state.hits.find(img => img.id === this.state.imageId);
-  }
+  const loadMore = () => {
+    setPage(page => page + 1);
+  };
 
-  render() {
-    const { hits, error, status, total, showModal } = this.state;
-    
+  const clickImage = id => {
+    setImageId(id);
+    toggleModal();
+  };
+
+  const getLargeImage = () => {
+    return hits.find(img => img.id === imageId);
+  }
+  
   return (
     <div className='App'>
       <ToastContainer autoClose={3000} />
       
-      <Searchbar onSubmit={this.handleFormSubmit} />
+      <Searchbar onSubmit={handleFormSubmit} />
       
       {error && <p className='Error'>Виникла помилка, перезагрузіть сторінку та введіть пошуковий запит</p>}
 
-      <ImageGallery hits={hits} onClick={this.clickImage}/>
+      <ImageGallery hits={hits} onClick={clickImage}/>
 
-      {status === 'resolved' && hits.length > 0 && hits.length < total && (<Button onClick={this.loadMore} />)}
+      {status === 'resolved' && hits.length > 0 && hits.length < total && (<Button onClick={loadMore} />)}
       
       {status === 'pending' && (<div className='Circles'>
         <Circles color="#3f51b5" height={80} width={80} ariaLabel="loading-indicator" />
       </div>)}
 
-      {showModal && (<Modal onClose={this.toggleModal}>
-      <img src={this.getLargeImage().largeImageURL} alt={this.getLargeImage().tags} /></Modal>)}
+      {showModal && (<Modal onClose={toggleModal}>
+      <img src={getLargeImage().largeImageURL} alt={getLargeImage().tags} /></Modal>)}
   </div>
   );
-  };
-};
-
-export default App;
+}
