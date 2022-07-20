@@ -4,17 +4,10 @@ import ImageGalleryItem from '../ImageGalleryItem/ImageGalleryItem';
 import styles from './ImageGallery.module.css';
 
 const ImageGallery = ({ hits, onClick }) => {
-    const imageClick = event => {
-        if (event.target.nodeName !== 'IMG') {
-            return;
-        }
-        
-        onClick(Number(event.target.dataset.id));
-    }
 
     return (
-        <ul className={styles.gallery} onClick={imageClick}>
-                <ImageGalleryItem hits={hits} />
+        <ul className={styles.gallery} >
+            <ImageGalleryItem hits={hits} onClick={onClick} />
         </ul>
     );
 };
