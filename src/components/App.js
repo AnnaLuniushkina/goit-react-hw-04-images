@@ -78,14 +78,10 @@ export default function App() {
     setPage(page => page + 1);
   };
 
-  const clickImage = id => {
-    setImageId(id);
+  const clickImage = largeImageURL => {
+    setImageId(largeImageURL);
     toggleModal();
   };
-
-  const getLargeImage = () => {
-    return hits.find(img => img.id === imageId);
-  }
   
   return (
     <div className='App'>
@@ -104,7 +100,7 @@ export default function App() {
       </div>)}
 
       {showModal && (<Modal onClose={toggleModal}>
-      <img src={getLargeImage().largeImageURL} alt={getLargeImage().tags} /></Modal>)}
+      <img src={imageId} alt="" /></Modal>)}
   </div>
   );
 }
